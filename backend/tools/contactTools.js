@@ -1,9 +1,13 @@
 /**
- * Tool definitions for the LLM to understand available contact operations
- * These tools define what the LLM can invoke via function calling
+ * Tool definitions for the LLM to understand available contact operations.
+ * These tools now consume the existing API endpoints instead of direct DB access.
  */
 
-const Contact = require('../models/Contact');
+const axios = require('axios');
+
+// Internal base URL for API calls
+const PORT = process.env.PORT || 5000;
+const API_BASE_URL = `http://localhost:${PORT}/contacts`;
 
 const TOOLS = [
   {
@@ -12,18 +16,9 @@ const TOOLS = [
     parameters: {
       type: 'object',
       properties: {
-        name: {
-          type: 'string',
-          description: 'The name of the contact'
-        },
-        email: {
-          type: 'string',
-          description: 'The email address of the contact'
-        },
-        phone: {
-          type: 'string',
-          description: 'The phone number of the contact'
-        }
+        name: { type: 'string', description: 'The name of the contact' },
+        email: { type: 'string', description: 'The email address of the contact' },
+        phone: { type: 'string', description: 'The phone number of the contact' }
       },
       required: ['name', 'email', 'phone']
     }
@@ -42,10 +37,7 @@ const TOOLS = [
     parameters: {
       type: 'object',
       properties: {
-        name: {
-          type: 'string',
-          description: 'The name of the contact to delete'
-        }
+        name: { type: 'string', description: 'The name of the contact to delete' }
       },
       required: ['name']
     }
@@ -56,18 +48,9 @@ const TOOLS = [
     parameters: {
       type: 'object',
       properties: {
-        name: {
-          type: 'string',
-          description: 'The name of the contact to update'
-        },
-        email: {
-          type: 'string',
-          description: 'New email address (optional)'
-        },
-        phone: {
-          type: 'string',
-          description: 'New phone number (optional)'
-        }
+        name: { type: 'string', description: 'The name of the contact to update' },
+        email: { type: 'string', description: 'New email address (optional)' },
+        phone: { type: 'string', description: 'New phone number (optional)' }
       },
       required: ['name']
     }
@@ -92,97 +75,62 @@ async function executeTool(toolName, args) {
         return { error: `Unknown tool: ${toolName}` };
     }
   } catch (error) {
-    return { error: error.message };
+    // Return the message from the API if available, otherwise the axios error
+    const message = error.response?.data?.message || error.message;
+    return { error: message, success: false };
   }
 }
 
-async function addContact({ name, email, phone }) {
-  // Check if contact already exists
-  const existingContact = await Contact.findOne({ email });
-  if (existingContact) {
-    return { error: `Contact with email ${email} already exists` };
-  }
-
-  const contact = await Contact.create({
-    name,
-    email,
-    phone
-  });
-
+async function addContact(contactData) {
+  const response = await axios.post(API_BASE_URL, contactData);
   return {
     success: true,
-    message: `Contact "${name}" added successfully!`,
-    contact: contact
+    message: `Contact "${contactData.name}" added successfully!`,
+    contact: response.data
   };
 }
 
 async function getContacts() {
-  const contacts = await Contact.find();
-  if (contacts.length === 0) {
-    return {
-      success: true,
-      message: 'Your contact list is empty.',
-      contacts: []
-    };
-  }
-
-  const formattedContacts = contacts.map(c => ({
-    name: c.name,
-    email: c.email,
-    phone: c.phone
-  }));
-
+  const response = await axios.get(API_BASE_URL);
+  const contacts = response.data;
+  
   return {
     success: true,
-    message: `Found ${contacts.length} contact(s)`,
-    contacts: formattedContacts
+    message: contacts.length > 0 ? `Found ${contacts.length} contact(s)` : 'Your contact list is empty.',
+    contacts: contacts.map(c => ({ name: c.name, email: c.email, phone: c.phone }))
   };
 }
 
 async function deleteContact({ name }) {
-  const contact = await Contact.findOne({
-    name: { $regex: name, $options: 'i' }
-  });
+  // The API requires an ID, so we first find the contact by name
+  const allContacts = (await axios.get(API_BASE_URL)).data;
+  const contact = allContacts.find(c => c.name.toLowerCase().includes(name.toLowerCase()));
 
   if (!contact) {
     return { error: `Contact named "${name}" not found` };
   }
 
-  await Contact.deleteOne({ _id: contact._id });
-
+  await axios.delete(`${API_BASE_URL}/${contact._id}`);
   return {
     success: true,
     message: `Contact "${contact.name}" has been deleted successfully!`
   };
 }
 
-async function updateContact({ name, email, phone }) {
-  const contact = await Contact.findOne({
-    name: { $regex: name, $options: 'i' }
-  });
+async function updateContact({ name, ...updateData }) {
+  // The API requires an ID, so we first find the contact by name
+  const allContacts = (await axios.get(API_BASE_URL)).data;
+  const contact = allContacts.find(c => c.name.toLowerCase().includes(name.toLowerCase()));
 
   if (!contact) {
     return { error: `Contact named "${name}" not found` };
   }
 
-  const updateData = {};
-  if (email) updateData.email = email;
-  if (phone) updateData.phone = phone;
-
-  if (Object.keys(updateData).length === 0) {
-    return { error: 'Please provide at least one field to update (email or phone)' };
-  }
-
-  const updatedContact = await Contact.findByIdAndUpdate(
-    contact._id,
-    updateData,
-    { new: true, runValidators: true }
-  );
-
+  const response = await axios.put(`${API_BASE_URL}/${contact._id}`, updateData);
   return {
     success: true,
     message: `Contact "${contact.name}" updated successfully!`,
-    contact: updatedContact
+    contact: response.data
   };
 }
 

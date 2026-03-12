@@ -41,7 +41,7 @@ const VoiceInput = ({ onSpeechEnd }) => {
       }`}
       title={isListening ? "Stop Listening" : "Start Voice Input"}
     >
-      {isListening ? <MicOff size={20} /> : <Mic size={20} />}
+      {isListening ? <Mic size={20} /> : <MicOff size={20} />}
     </button>
   );
 };
