@@ -36,7 +36,6 @@ const AddContact = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      form.email = form.email.replace(/\s+/g, "").toLowerCase();
       const response = await axios.post('http://localhost:5000/contacts', formData);
       setMessage({ type: 'success', text: 'Contact added successfully!' });
       setFormData({ name: '', email: '', phone: '' });
