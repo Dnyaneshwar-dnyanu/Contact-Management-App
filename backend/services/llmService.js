@@ -9,7 +9,7 @@ const axios = require('axios');
 class LLMService {
   constructor() {
     this.apiKey = process.env.LLM_API_KEY;
-    this.model = process.env.LLM_MODEL || 'gemini-2.5-flash';
+    this.model = process.env.LLM_MODEL;
     this.conversationHistory = [];
   }
 
@@ -142,7 +142,23 @@ class LLMService {
    * Build prompt for Gemini
    */
   buildGeminiPrompt(userMessage) {
-    return `User: ${userMessage}\n\nYou are a helpful contact management assistant. Help the user manage their contacts.`;
+    return `You are a professional Contact Management Assistant. 
+Your goal is to help users manage their personal and professional contacts efficiently.
+
+You have access to several tools:
+- add_contact: Use this when the user wants to add a new person. You MUST ask for name, email, and phone if they are missing.
+- get_contacts: Use this to show the list of all contacts.
+- delete_contact: Use this to remove a contact. You need the name of the contact.
+- update_contact: Use this to change details of an existing contact.
+
+Rules:
+1. Be polite and concise.
+2. If a user's request is ambiguous, ask for clarification.
+3. When adding a contact, ensure you have all required fields (name, email, phone).
+4. For updates and deletions, confirm the name of the contact.
+5. If the user just says hi or hello, greet them and explain what you can do.
+
+Current User Message: ${userMessage}`;
   }
 
   /**

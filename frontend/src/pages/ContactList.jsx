@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Edit, Trash2, X, Check, Loader2, Users } from 'lucide-react';
 
+import API_BASE_URL from '../api/config';
+
 const ContactList = () => {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,7 @@ const ContactList = () => {
   const fetchContacts = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/contacts');
+      const response = await axios.get(`${API_BASE_URL}/contacts`);
       setContacts(response.data);
     } catch (err) {
       setError('Failed to fetch contacts');
@@ -28,7 +30,7 @@ const ContactList = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this contact?')) {
       try {
-        await axios.delete(`http://localhost:5000/contacts/${id}`);
+        await axios.delete(`${API_BASE_URL}/contacts/${id}`);
         setContacts(contacts.filter((c) => c._id !== id));
       } catch (err) {
         alert('Failed to delete contact');
@@ -48,7 +50,7 @@ const ContactList = () => {
 
   const handleUpdate = async (id) => {
     try {
-      const response = await axios.put(`http://localhost:5000/contacts/${id}`, editForm);
+      const response = await axios.put(`${API_BASE_URL}/contacts/${id}`, editForm);
       setContacts(contacts.map((c) => (c._id === id ? response.data : c)));
       setEditingId(null);
     } catch (err) {

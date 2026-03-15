@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { UserPlus, Loader2 } from 'lucide-react';
+import API_BASE_URL from '../api/config';
 
 const AddContact = () => {
   const [formData, setFormData] = useState({
@@ -36,7 +37,7 @@ const AddContact = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const response = await axios.post('http://localhost:5000/contacts', formData);
+      const response = await axios.post(`${API_BASE_URL}/contacts`, formData);
       setMessage({ type: 'success', text: 'Contact added successfully!' });
       setFormData({ name: '', email: '', phone: '' });
     } catch (error) {

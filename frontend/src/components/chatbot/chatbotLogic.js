@@ -1,6 +1,7 @@
 import axios from 'axios';
+import API_BASE_URL from '../../api/config';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = API_BASE_URL;
 
 /**
  * Process user input by sending to LLM backend
